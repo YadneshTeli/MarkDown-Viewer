@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-03-06
+
+### Added
+- "Open with" support — tap any `.md` or `.markdown` file in the Files app, email, or any share sheet and the app opens it directly on both Android and iOS.
+
+### Fixed
+- CI release workflow now attaches all three artifacts (APK, AAB, IPA) correctly.
+- GitHub release body now shows a concise summary with a link to the full CHANGELOG instead of duplicate auto-generated notes.
+
+---
+
 ## [1.0.0] - 2026-03-06
 
 ### Added
