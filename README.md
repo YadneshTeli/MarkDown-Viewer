@@ -93,7 +93,7 @@ flutter run
 
 ## 🚀 Release
 
-This project uses **GitHub Actions** to automatically build and publish releases.
+This project uses **GitHub Actions** to automatically build and publish releases across platforms.
 
 ### Creating a Release
 ```bash
@@ -104,10 +104,11 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-This will automatically:
-1. Run `flutter analyze` to verify code quality
-2. Build a release **APK** and **App Bundle** (AAB)
-3. Create a **GitHub Release** with the artifacts attached
+This will automatically trigger a multi-os matrix that:
+1. Runs `flutter analyze` to verify code quality
+2. Builds an **Android APK** and **App Bundle** (AAB) on Ubuntu
+3. Builds an **iOS IPA** payload (unsigned) on macOS
+4. Collects the artifacts and creates a **GitHub Release** with them attached
 
 ## 📸 Screenshots
 
