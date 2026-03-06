@@ -87,6 +87,9 @@ jobs:
     needs: [build-android, build-ios]
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Download Android Artifacts
         uses: actions/download-artifact@v4
         with:
@@ -97,11 +100,24 @@ jobs:
         with:
           name: ios-release
 
+      - name: Extract Changelog Summary
+        id: changelog
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          # Extract first non-empty line after the version heading as the summary
+          SUMMARY=$(awk "/^## \[$VERSION\]/{found=1; next} found && /^### /{print; exit}" CHANGELOG.md)
+          CHANGELOG_URL="https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/CHANGELOG.md#${VERSION//.}"
+          echo "summary=$SUMMARY" >> $GITHUB_OUTPUT
+          echo "url=$CHANGELOG_URL" >> $GITHUB_OUTPUT
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            app-release.apk
-            app-release.aab
+            **/app-release.apk
+            **/app-release.aab
             app-release.ipa
-          generate_release_notes: true
+          body: |
+            ${{ steps.changelog.outputs.summary }}
+
+            📋 **[View full changelog](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/CHANGELOG.md)**
