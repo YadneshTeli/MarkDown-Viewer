@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/markdown_file.dart';
 import '../providers/search_provider.dart';
+import '../services/export_service.dart';
 import '../services/markdown_service.dart';
 import '../widgets/markdown_viewer_widget.dart';
 
@@ -165,10 +166,29 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
       ),
       PopupMenuButton<String>(
         icon: const Icon(Icons.more_vert),
-        onSelected: (value) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('$value — coming soon!')),
-          );
+        onSelected: (value) async {
+          if (mdFile == null) return;
+          final exportService = ExportService();
+          try {
+            if (value == 'Share') {
+              await exportService.shareMarkdown(
+                content: _processedContent ?? mdFile.content,
+                fileName: mdFile.name,
+              );
+            } else if (value == 'Export PDF') {
+              await exportService.exportToPdf(
+                content: _processedContent ?? mdFile.content,
+                fileName: mdFile.name,
+              );
+            }
+          } catch (e) {
+            // Guard against async gaps
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Export failed: $e')),
+              );
+            }
+          }
         },
         itemBuilder: (context) => [
           const PopupMenuItem(
