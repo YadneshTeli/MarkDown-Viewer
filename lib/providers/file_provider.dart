@@ -71,6 +71,20 @@ class FileNotifier extends AsyncNotifier<MarkdownFile?> {
   void clearFile() {
     state = const AsyncData(null);
   }
+
+  /// Open a file directly from [path] — used when launched via "Open with".
+  Future<MarkdownFile?> openFromPath(String path) async {
+    state = const AsyncLoading();
+    try {
+      final file = await _fileService.readMarkdownFile(path);
+      await _historyService.addToHistory(file);
+      state = AsyncData(file);
+      return file;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return null;
+    }
+  }
 }
 
 final fileProvider = AsyncNotifierProvider<FileNotifier, MarkdownFile?>(
