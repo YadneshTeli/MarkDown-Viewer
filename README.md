@@ -1,25 +1,26 @@
-# 📝 MD Viewer (nusta_md)
+# MD Viewer (`nusta_md`)
 
-A beautiful, cross-platform **Markdown Viewer** app built with Flutter. Open `.md` and `.markdown` files from your device and view them with rich rendering, syntax highlighting, and theme support.
+A cross-platform **Markdown Viewer** app built with Flutter. Open `.md` and `.markdown` files from your device and view them with rich rendering, search, and theme support.
 
 ## ✨ Features
 
-### Phase 1 — Core
-- 📂 **File Picker** — Open `.md` / `.markdown` files from device storage
-- 🎨 **Rich Markdown Rendering** — Headings, bold/italic, code blocks, tables, blockquotes, links, images
-- 🖼️ **Badge & Image Support** — Shields.io badges (auto-converted to PNG), SVG via `flutter_svg`, raster images with loading indicators
-- 🌗 **Light / Dark / System Theme** — Toggle between modes, persisted across sessions
-- 🔗 **Link Handling** — External URLs open in browser via `url_launcher`
+### Core
+- **File Picker** — Open `.md` / `.markdown` files from device storage
+- **Rich Markdown Rendering** — Headings, inline formatting, code blocks, tables, blockquotes, links, and images
+- **Badge & Image Support** — Shields.io badges (auto-converted to PNG), SVG via `flutter_svg`, raster images with loading indicators
+- **Light / Dark / System Theme** — Toggle between modes, persisted across sessions
+- **Link Handling** — External URLs open in browser via `url_launcher`
 
-### Phase 2 — Enhanced
-- 📜 **File History** — Recent files stored in Hive, reopen without re-picking
-- 🔍 **In-Document Search** — Case-insensitive search with match count & navigation
-- ⚡ **Riverpod State Management** — `AsyncNotifier` for file state, `Notifier` for theme & search
+### Enhanced
+- **File History** — Recent files stored in Hive, reopen without re-picking
+- **In-Document Search** — Case-insensitive search with match count, next/previous controls, and tappable result snippets
+- **In-Content Highlighting** — Active search query is highlighted in rendered markdown
+- **Riverpod State Management** — `AsyncNotifier` for file state, `Notifier` for theme and search
 
-### Phase 3 — Advanced
-- 🔖 **Bookmarks** — Per-file heading bookmarks persisted via Hive
-- 📤 **Share / Export** — Share markdown files, copy to clipboard
-- ⚙️ **Settings Screen** — Theme selector, font size slider, about info
+### Advanced
+- **Share / Export** — Share markdown files, copy to clipboard
+- **PDF Export** — Structured PDF rendering with parsed markdown blocks and inline formatting
+- **Settings Screen** — Theme selector and app info
 
 ## 🛠️ Tech Stack
 
@@ -35,6 +36,7 @@ A beautiful, cross-platform **Markdown Viewer** app built with Flutter. Open `.m
 | Typography | Google Fonts |
 | URL Handling | `url_launcher` |
 | Sharing | `share_plus` |
+| PDF Export | `pdf`, `printing` |
 
 ## 📁 Project Structure
 
@@ -47,7 +49,8 @@ lib/
 ├── providers/
 │   ├── theme_provider.dart       # Light/dark/system toggle
 │   ├── file_provider.dart        # File loading + history
-│   └── search_provider.dart      # In-document search state
+│   ├── search_provider.dart      # In-document search state
+│   └── service_providers.dart    # DI providers for app services
 ├── screens/
 │   ├── home_screen.dart          # Home with history, FAB, settings
 │   ├── viewer_screen.dart        # Markdown display + search UI
@@ -55,11 +58,10 @@ lib/
 ├── services/
 │   ├── file_service.dart         # File picker + reading
 │   ├── markdown_service.dart     # Content validation
+│   ├── markdown_parser.dart      # Markdown block parser for export
 │   ├── history_service.dart      # Recent files (Hive)
 │   ├── search_service.dart       # Text search engine
-│   ├── bookmark_service.dart     # Per-file bookmarks (Hive)
-│   ├── bookmark_service.g.dart   # Hive TypeAdapter
-│   └── export_service.dart       # Share + clipboard
+│   └── export_service.dart       # Share + clipboard + PDF export
 ├── utils/
 │   ├── constants.dart            # App constants, colors, keys
 │   └── theme.dart                # Light + dark ThemeData
@@ -97,11 +99,11 @@ This project uses **GitHub Actions** to automatically build and publish releases
 
 ### Creating a Release
 ```bash
-# Tag the current commit
-git tag v1.0.0
+# Tag the current commit (example)
+git tag -a v1.1.0 -m "Release v1.1.0"
 
 # Push the tag to trigger the release workflow
-git push origin v1.0.0
+git push origin v1.1.0
 ```
 
 This will automatically trigger a multi-os matrix that:
@@ -109,6 +111,13 @@ This will automatically trigger a multi-os matrix that:
 2. Builds an **Android APK** and **App Bundle** (AAB) on Ubuntu
 3. Builds an **iOS IPA** payload (unsigned) on macOS
 4. Collects the artifacts and creates a **GitHub Release** with them attached
+
+## Testing
+
+```bash
+flutter analyze
+flutter test
+```
 
 ## 📸 Screenshots
 
