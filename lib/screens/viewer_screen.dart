@@ -3,8 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/markdown_file.dart';
 import '../providers/search_provider.dart';
-import '../services/export_service.dart';
-import '../services/markdown_service.dart';
+import '../providers/service_providers.dart';
 import '../widgets/markdown_viewer_widget.dart';
 
 class ViewerScreen extends ConsumerStatefulWidget {
@@ -15,8 +14,8 @@ class ViewerScreen extends ConsumerStatefulWidget {
 }
 
 class _ViewerScreenState extends ConsumerState<ViewerScreen> {
-  final MarkdownService _markdownService = MarkdownService();
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   String? _processedContent;
   String? _error;
   bool _isProcessing = true;
@@ -32,6 +31,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -48,7 +48,8 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     }
 
     try {
-      final processed = _markdownService.processContent(mdFile.content);
+      final markdownService = ref.read(markdownServiceProvider);
+      final processed = markdownService.processContent(mdFile.content);
       setState(() {
         _processedContent = processed;
         _isProcessing = false;
@@ -61,12 +62,47 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     }
   }
 
+  /// Scroll the markdown view to the approximate position of the given match.
+  void _scrollToMatch(SearchState searchState) {
+    if (_processedContent == null || !searchState.hasMatches) return;
+    if (!_scrollController.hasClients) return;
+
+    final match = searchState.currentMatch;
+    if (match == null) return;
+
+    // Estimate scroll position based on character offset ratio
+    final contentLength = _processedContent!.length;
+    if (contentLength == 0) return;
+
+    final ratio = match.startIndex / contentLength;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final targetOffset = (ratio * maxScroll).clamp(0.0, maxScroll);
+
+    _scrollController.animateTo(
+      targetOffset,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final mdFile =
         ModalRoute.of(context)?.settings.arguments as MarkdownFile?;
     final theme = Theme.of(context);
     final searchState = ref.watch(searchProvider);
+
+    // Listen for match index changes and scroll to match
+    ref.listen<SearchState>(searchProvider, (previous, next) {
+      if (next.hasMatches &&
+          (previous?.currentMatchIndex != next.currentMatchIndex ||
+              previous?.query != next.query)) {
+        // Post-frame callback so the scroll extent is up to date
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollToMatch(next);
+        });
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -168,7 +204,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
         icon: const Icon(Icons.more_vert),
         onSelected: (value) async {
           if (mdFile == null) return;
-          final exportService = ExportService();
+          final exportService = ref.read(exportServiceProvider);
           try {
             if (value == 'Share') {
               await exportService.shareMarkdown(
@@ -285,14 +321,171 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
             ),
           ),
 
+        // Search results panel with highlighted context snippets
+        if (searchState.isActive && searchState.hasMatches)
+          _buildSearchResultsPanel(theme, searchState),
+
         // Markdown content
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: MarkdownViewerWidget(content: _processedContent!),
+            child: MarkdownViewerWidget(
+              content: _processedContent!,
+              scrollController: _scrollController,
+            ),
           ),
         ),
       ],
+    );
+  }
+
+  /// Builds a compact, scrollable list of search result snippets with
+  /// the matched text highlighted. Tapping a result navigates to it.
+  Widget _buildSearchResultsPanel(ThemeData theme, SearchState searchState) {
+    return Container(
+      constraints: const BoxConstraints(maxHeight: 160),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        border: Border(
+          bottom: BorderSide(
+            color: theme.colorScheme.outlineVariant,
+            width: 1,
+          ),
+        ),
+      ),
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        shrinkWrap: true,
+        itemCount: searchState.matches.length,
+        separatorBuilder: (_, _) => Divider(
+          height: 1,
+          indent: 16,
+          endIndent: 16,
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+        ),
+        itemBuilder: (context, index) {
+          final match = searchState.matches[index];
+          final isCurrent = index == searchState.currentMatchIndex;
+
+          return Material(
+            color: isCurrent
+                ? theme.colorScheme.primaryContainer.withValues(alpha: 0.5)
+                : Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                ref.read(searchProvider.notifier).goToMatch(index);
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Row(
+                  children: [
+                    // Match number indicator
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: isCurrent
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '${index + 1}',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: isCurrent
+                              ? theme.colorScheme.onPrimary
+                              : theme.colorScheme.onSurface,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Context snippet with highlighted match
+                    Expanded(
+                      child: _buildHighlightedContext(
+                        theme,
+                        match.context,
+                        searchState.query,
+                        isCurrent,
+                      ),
+                    ),
+                    if (isCurrent)
+                      Icon(
+                        Icons.chevron_right,
+                        size: 18,
+                        color: theme.colorScheme.primary,
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Renders a context string with matching query text highlighted.
+  Widget _buildHighlightedContext(
+    ThemeData theme,
+    String contextText,
+    String query,
+    bool isCurrent,
+  ) {
+    final lowerContext = contextText.toLowerCase();
+    final lowerQuery = query.toLowerCase();
+    final spans = <TextSpan>[];
+
+    int start = 0;
+    while (true) {
+      final matchIndex = lowerContext.indexOf(lowerQuery, start);
+      if (matchIndex == -1) {
+        // Add the remaining text
+        if (start < contextText.length) {
+          spans.add(TextSpan(
+            text: contextText.substring(start),
+          ));
+        }
+        break;
+      }
+
+      // Add text before match
+      if (matchIndex > start) {
+        spans.add(TextSpan(
+          text: contextText.substring(start, matchIndex),
+        ));
+      }
+
+      // Add highlighted match
+      spans.add(TextSpan(
+        text: contextText.substring(matchIndex, matchIndex + query.length),
+        style: TextStyle(
+          backgroundColor: isCurrent
+              ? theme.colorScheme.primary.withValues(alpha: 0.3)
+              : theme.colorScheme.tertiary.withValues(alpha: 0.25),
+          color: isCurrent
+              ? theme.colorScheme.primary
+              : theme.colorScheme.onSurface,
+          fontWeight: FontWeight.bold,
+        ),
+      ));
+
+      start = matchIndex + query.length;
+    }
+
+    return RichText(
+      text: TextSpan(
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+        ),
+        children: spans,
+      ),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
     );
   }
 }

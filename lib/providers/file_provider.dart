@@ -2,14 +2,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/markdown_file.dart';
 import '../services/file_service.dart';
 import '../services/history_service.dart';
+import 'service_providers.dart';
 
 /// Manages the currently loaded file.
 class FileNotifier extends AsyncNotifier<MarkdownFile?> {
-  final FileService _fileService = FileService();
-  final HistoryService _historyService = HistoryService();
+  late final FileService _fileService;
+  late final HistoryService _historyService;
 
   @override
   Future<MarkdownFile?> build() async {
+    _fileService = ref.read(fileServiceProvider);
+    _historyService = ref.read(historyServiceProvider);
     return null; // No file loaded initially
   }
 
@@ -95,6 +98,6 @@ final fileProvider = AsyncNotifierProvider<FileNotifier, MarkdownFile?>(
 final recentFilesProvider = Provider<List<MarkdownFile>>((ref) {
   // Watch the file provider to refresh when files are opened
   ref.watch(fileProvider);
-  final historyService = HistoryService();
+  final historyService = ref.read(historyServiceProvider);
   return historyService.getRecentFiles();
 });

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/search_service.dart';
+import 'service_providers.dart';
 
 class SearchState {
   final String query;
@@ -38,10 +39,13 @@ class SearchState {
 }
 
 class SearchNotifier extends Notifier<SearchState> {
-  final SearchService _searchService = SearchService();
+  late final SearchService _searchService;
 
   @override
-  SearchState build() => const SearchState();
+  SearchState build() {
+    _searchService = ref.read(searchServiceProvider);
+    return const SearchState();
+  }
 
   /// Start search mode.
   void activate() {
@@ -82,6 +86,13 @@ class SearchNotifier extends Notifier<SearchState> {
         ? state.totalMatches - 1
         : state.currentMatchIndex - 1;
     state = state.copyWith(currentMatchIndex: prev);
+  }
+
+  /// Jump to a specific match by index.
+  void goToMatch(int index) {
+    if (!state.hasMatches) return;
+    if (index < 0 || index >= state.totalMatches) return;
+    state = state.copyWith(currentMatchIndex: index);
   }
 }
 
