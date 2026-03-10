@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-03-10
+
+### Added
+- Markdown parser service with coverage for headings, paragraphs, code blocks, lists, blockquotes, and horizontal rules.
+- Search result panel in the viewer with tappable snippets and current-match indicator.
+- Service-level providers for File, History, Markdown, Search, and Export dependencies.
+- New tests for markdown parsing, search provider behavior, and search service matching.
+
+### Changed
+- Markdown viewer now supports in-content search highlighting and external scroll control for match navigation.
+- PDF export now renders structured markdown blocks with improved typography and inline formatting support.
+
+### Fixed
+- Resolved `unnecessary_underscores` lint in viewer result separators.
+
 ## [1.0.1] - 2026-03-06
 
 ### Added
