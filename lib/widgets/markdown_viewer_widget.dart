@@ -1,27 +1,180 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../providers/search_provider.dart';
+
 /// A themed markdown viewer that adapts to light/dark mode.
-/// Supports remote images, SVG badges, HTML tags, and custom styling.
-class MarkdownViewerWidget extends StatelessWidget {
+/// Supports remote images, SVG badges, HTML tags, custom styling,
+/// and in-content search highlighting.
+class MarkdownViewerWidget extends ConsumerWidget {
   final String content;
+  final ScrollController? scrollController;
 
   const MarkdownViewerWidget({
     super.key,
     required this.content,
+    this.scrollController,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final searchState = ref.watch(searchProvider);
+    final theme = Theme.of(context);
+
+    // Build the markdown generator — with highlight builder when search is active
+    MarkdownGenerator generator;
+    if (searchState.isActive && searchState.query.isNotEmpty) {
+      final highlightQuery = searchState.query;
+      generator = MarkdownGenerator(
+        richTextBuilder: (InlineSpan span) {
+          return _highlightedRichText(span, highlightQuery, theme);
+        },
+      );
+    } else {
+      generator = MarkdownGenerator();
+    }
+
+    final config = isDark ? _darkConfig(context) : _lightConfig(context);
+
+    final markdownChild = MarkdownWidget(
+      data: content,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      config: config,
+      markdownGenerator: generator,
+    );
+
+    if (scrollController != null) {
+      return SingleChildScrollView(
+        controller: scrollController,
+        child: markdownChild,
+      );
+    }
 
     return MarkdownWidget(
       data: content,
       shrinkWrap: false,
-      config: isDark ? _darkConfig(context) : _lightConfig(context),
+      config: config,
+      markdownGenerator: generator,
     );
+  }
+
+  // ─── Search highlighting via richTextBuilder ──────────────────────
+
+  /// Intercepts each `Text.rich(textSpan)` created by the markdown renderer,
+  /// walks the span tree, and injects highlight backgrounds for matching text.
+  Widget _highlightedRichText(InlineSpan span, String query, ThemeData theme) {
+    if (span is TextSpan) {
+      final highlighted = _highlightSpan(span, query, theme);
+      return Text.rich(highlighted);
+    }
+    return Text.rich(span);
+  }
+
+  /// Recursively walks a [TextSpan] tree and splits any leaf spans
+  /// that contain the search [query] into highlighted / non-highlighted parts.
+  TextSpan _highlightSpan(TextSpan span, String query, ThemeData theme) {
+    // If this span has children, recurse into them
+    if (span.children != null && span.children!.isNotEmpty) {
+      final recursedChildren = span.children!.map((child) {
+        if (child is TextSpan) {
+          return _highlightSpan(child, query, theme);
+        }
+        return child;
+      }).toList();
+
+      // If the parent span also has text, convert it to highlighted children
+      // and prepend to the children list
+      if (span.text != null && span.text!.isNotEmpty) {
+        final textSegments = _splitByQuery(span.text!, query);
+        final textChildren = textSegments.map((seg) {
+          if (seg.isMatch) {
+            return TextSpan(
+              text: seg.text,
+              style: (span.style ?? const TextStyle()).copyWith(
+                backgroundColor: Colors.yellow.withValues(alpha: 0.6),
+                color: Colors.black,
+              ),
+            );
+          }
+          return TextSpan(text: seg.text, style: span.style);
+        }).toList();
+
+        return TextSpan(
+          style: span.style,
+          children: [...textChildren, ...recursedChildren],
+        );
+      }
+
+      return TextSpan(
+        style: span.style,
+        children: recursedChildren,
+      );
+    }
+
+    // Leaf span with text — split it to highlight matches
+    if (span.text != null && span.text!.isNotEmpty) {
+      final segments = _splitByQuery(span.text!, query);
+      if (segments.length == 1 && !segments.first.isMatch) {
+        return span; // No match, return unchanged
+      }
+
+      return TextSpan(
+        children: segments.map((seg) {
+          if (seg.isMatch) {
+            return TextSpan(
+              text: seg.text,
+              style: (span.style ?? const TextStyle()).copyWith(
+                backgroundColor: Colors.yellow.withValues(alpha: 0.6),
+                color: Colors.black,
+              ),
+            );
+          }
+          return TextSpan(text: seg.text, style: span.style);
+        }).toList(),
+      );
+    }
+
+    return span;
+  }
+
+  /// Splits [text] into segments, marking which ones match the [query].
+  List<_TextSegment> _splitByQuery(String text, String query) {
+    final lowerText = text.toLowerCase();
+    final lowerQuery = query.toLowerCase();
+    final segments = <_TextSegment>[];
+
+    int start = 0;
+    while (true) {
+      final matchIndex = lowerText.indexOf(lowerQuery, start);
+      if (matchIndex == -1) {
+        if (start < text.length) {
+          segments.add(_TextSegment(text.substring(start), false));
+        }
+        break;
+      }
+
+      if (matchIndex > start) {
+        segments.add(_TextSegment(text.substring(start, matchIndex), false));
+      }
+
+      segments.add(_TextSegment(
+        text.substring(matchIndex, matchIndex + query.length),
+        true,
+      ));
+
+      start = matchIndex + query.length;
+    }
+
+    if (segments.isEmpty) {
+      segments.add(_TextSegment(text, false));
+    }
+
+    return segments;
   }
 
   // ─── Shared image config used by both themes ────────────────────────
@@ -161,21 +314,16 @@ class MarkdownViewerWidget extends StatelessWidget {
 
   // ─── Image handling ─────────────────────────────────────────────────
 
-  /// Converts shields.io SVG URLs to PNG for proper raster rendering.
-  /// shields.io supports .svg, .png, .json — just swap the extension.
   String _normalizeImageUrl(String url) {
     if (url.contains('img.shields.io') || url.contains('shields.io')) {
-      // Replace .svg with .png in the path (before query params)
       return url.replaceFirst('.svg?', '.png?').replaceFirst(
           RegExp(r'\.svg$'), '.png');
     }
     return url;
   }
 
-  /// Determines whether a URL points to a true SVG (not shields.io).
   bool _isSvgUrl(String url) {
     final lower = url.toLowerCase();
-    // shields.io is handled separately via PNG conversion
     if (lower.contains('shields.io')) return false;
     if (lower.endsWith('.svg') ||
         lower.contains('.svg?') ||
@@ -185,7 +333,6 @@ class MarkdownViewerWidget extends StatelessWidget {
     return false;
   }
 
-  /// Detects if the image is a small inline badge.
   bool _isBadge(String url) {
     final lower = url.toLowerCase();
     return lower.contains('img.shields.io') ||
@@ -193,7 +340,6 @@ class MarkdownViewerWidget extends StatelessWidget {
         lower.contains('shields');
   }
 
-  /// Builds the appropriate image widget based on URL type.
   Widget _buildImage(
       String url, Map<String, String> attributes, ThemeData theme) {
     if (url.isEmpty) return const SizedBox.shrink();
@@ -205,7 +351,6 @@ class MarkdownViewerWidget extends StatelessWidget {
       horizontal: isBadge ? 2 : 0,
     );
 
-    // True SVG files (not shields.io) — render with flutter_svg
     if (_isSvgUrl(normalizedUrl)) {
       return Padding(
         padding: padding,
@@ -218,7 +363,6 @@ class MarkdownViewerWidget extends StatelessWidget {
       );
     }
 
-    // Raster image (PNG, JPG, or shields.io converted to PNG)
     return Padding(
       padding: padding,
       child: Image.network(
@@ -249,7 +393,6 @@ class MarkdownViewerWidget extends StatelessWidget {
     );
   }
 
-  /// Shows a styled fallback chip when an image fails to load.
   Widget _buildImageError(ThemeData theme, String alt) {
     if (alt.isNotEmpty) {
       return Padding(
@@ -279,4 +422,12 @@ class MarkdownViewerWidget extends StatelessWidget {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
+}
+
+/// Helper class to represent a text segment — either matching or non-matching.
+class _TextSegment {
+  final String text;
+  final bool isMatch;
+
+  const _TextSegment(this.text, this.isMatch);
 }
