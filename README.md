@@ -5,6 +5,7 @@ A cross-platform **Markdown Viewer** app built with Flutter. Open `.md` and `.ma
 ## ✨ Features
 
 ### Core
+
 - **File Picker** — Open `.md` / `.markdown` files from device storage
 - **Rich Markdown Rendering** — Headings, inline formatting, code blocks, tables, blockquotes, links, and images
 - **Badge & Image Support** — Shields.io badges (auto-converted to PNG), SVG via `flutter_svg`, raster images with loading indicators
@@ -12,12 +13,14 @@ A cross-platform **Markdown Viewer** app built with Flutter. Open `.md` and `.ma
 - **Link Handling** — External URLs open in browser via `url_launcher`
 
 ### Enhanced
+
 - **File History** — Recent files stored in Hive, reopen without re-picking
 - **In-Document Search** — Case-insensitive search with match count, next/previous controls, and tappable result snippets
 - **In-Content Highlighting** — Active search query is highlighted in rendered markdown
 - **Riverpod State Management** — `AsyncNotifier` for file state, `Notifier` for theme and search
 
 ### Advanced
+
 - **Share / Export** — Share markdown files, copy to clipboard
 - **PDF Export** — Structured PDF rendering with parsed markdown blocks and inline formatting
 - **Settings Screen** — Theme selector and app info
@@ -73,6 +76,7 @@ lib/
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - Flutter SDK (stable channel)
 - Android Studio / VS Code
 - Android emulator or physical device
@@ -98,6 +102,7 @@ flutter run
 This project uses **GitHub Actions** to automatically build and publish releases across platforms.
 
 ### Creating a Release
+
 ```bash
 # Tag the current commit (example)
 git tag -a v1.1.0 -m "Release v1.1.0"
@@ -107,6 +112,7 @@ git push origin v1.1.0
 ```
 
 This will automatically trigger a multi-os matrix that:
+
 1. Runs `flutter analyze` to verify code quality
 2. Builds an **Android APK** and **App Bundle** (AAB) on Ubuntu
 3. Builds an **iOS IPA** payload (unsigned) on macOS
