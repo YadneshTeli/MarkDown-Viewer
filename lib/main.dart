@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'models/markdown_file.dart';
 import 'providers/file_provider.dart';
@@ -30,6 +32,28 @@ void main() async {
 
   // Check if started from an "Open with" intent before the widget tree builds
   final initialFilePath = await IntentService.getInitialFile();
+
+  // Clean up cache files from previous sessions
+  try {
+    final tempDir = await getTemporaryDirectory();
+    if (tempDir.existsSync()) {
+      final files = tempDir.listSync();
+      for (final file in files) {
+        if (file is File) {
+          final name = file.path.split(Platform.pathSeparator).last;
+          if (name.startsWith('nusta_cache_')) {
+            // Do not delete the file we are currently opening in this session
+            if (initialFilePath != null && file.path == initialFilePath) {
+              continue;
+            }
+            await file.delete();
+          }
+        }
+      }
+    }
+  } catch (_) {
+    // Ignore errors during cache cleanup
+  }
 
   runApp(
     ProviderScope(
@@ -62,6 +86,17 @@ class _MDViewerAppState extends ConsumerState<MDViewerApp> {
   }
 
   Future<void> _openIntentFile(String path) async {
+    if (path.startsWith('__error__:')) {
+      final errorMsg = path.substring('__error__:'.length);
+      final context = _navigatorKey.currentContext;
+      if (context != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to open file: $errorMsg')),
+        );
+      }
+      return;
+    }
+
     final file = await ref.read(fileProvider.notifier).openFromPath(path);
     if (file != null) {
       _navigatorKey.currentState?.pushNamedAndRemoveUntil(

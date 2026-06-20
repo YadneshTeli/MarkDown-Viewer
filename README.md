@@ -127,7 +127,7 @@ flutter test
 
 ## 📸 Screenshots
 
-*Coming soon*
+*Coming soon* 
 
 ## 📄 License
 

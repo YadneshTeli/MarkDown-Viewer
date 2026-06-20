@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    html, body { margin:0; padding:0; background:transparent; overflow:hidden; }
+    #graph { display:flex; justify-content:center; }
+    svg { max-width:100%; height:auto; }
+  </style>
+  <script src="mermaid.min.js"></script>
+</head>
+<body>
+  <div id="graph"></div>
+  <script>
+    function renderGraph(code, isDark) {
+      try {
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: isDark ? 'dark' : 'default',
+          securityLevel: 'loose'
+        });
+        const id = 'g' + Date.now();
+        mermaid.render(id, code).then(({svg}) => {
+          document.getElementById('graph').innerHTML = svg;
+          // Wait for DOM to lay out
+          setTimeout(() => {
+            const h = document.getElementById('graph').scrollHeight;
+            MermaidHeight.postMessage(String(h));
+          }, 50);
+        }).catch(err => {
+          document.getElementById('graph').innerHTML =
+            '<pre style="color:red;white-space:pre-wrap;font-size:12px;">' + err + '</pre>';
+          MermaidHeight.postMessage('80');
+        });
+      } catch (err) {
+        document.getElementById('graph').innerHTML =
+          '<pre style="color:red;white-space:pre-wrap;font-size:12px;">' + err + '</pre>';
+        MermaidHeight.postMessage('80');
+      }
+    }
+  </script>
+</body>
+</html>

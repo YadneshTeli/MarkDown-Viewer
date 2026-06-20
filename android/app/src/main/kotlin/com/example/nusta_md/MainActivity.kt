@@ -39,17 +39,21 @@ class MainActivity : FlutterActivity() {
 
     private fun resolveUri(intent: Intent?): String? {
         if (intent?.action != Intent.ACTION_VIEW) return null
-        val uri: Uri = intent.data ?: return null
-        return when (uri.scheme) {
-            "file" -> uri.path
-            "content" -> copyToCache(uri)
-            else -> null
+        val uri: Uri = intent.data ?: return "__error__:No data attached to intent"
+        return try {
+            when (uri.scheme) {
+                "file" -> uri.path
+                "content" -> copyToCache(uri) ?: "__error__:Failed to copy content to cache"
+                else -> "__error__:Unsupported URI scheme: ${uri.scheme}"
+            }
+        } catch (e: Exception) {
+            "__error__:${e.localizedMessage ?: "Unknown error"}"
         }
     }
 
     private fun copyToCache(uri: Uri): String? {
         return try {
-            val name = queryDisplayName(uri) ?: uri.lastPathSegment ?: "file.md"
+            val name = "nusta_cache_" + (queryDisplayName(uri) ?: uri.lastPathSegment ?: "file.md")
             val dest = File(cacheDir, name)
             contentResolver.openInputStream(uri)?.use { input ->
                 dest.outputStream().use { output -> input.copyTo(output) }

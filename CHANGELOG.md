@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-06-21
+
+### Added
+- Offline-first Mermaid diagram rendering via local asset bundling and WebViews.
+- Navigation support for relative markdown link taps and in-document anchor heading targets.
+- Dynamic Material 3 design enhancements, including outline card styling, custom FAB container colors, and focused input indicators.
+- Live markdown text font size scaling using Riverpod state management.
+- User-friendly UTF-8 FormatException wrapper when parsing invalid document encodings.
+
+### Changed
+- Refactored dark and light markdown styles (such as code block borders, table headers, blockquotes, and dividers) to dynamically use Material 3 ColorScheme color tokens.
+- Optimized file history storage by only preserving full content inside Hive for temporary picker files and reading stable local files directly from disk.
+- Debounced document search input with a 300ms delay to prevent heavy background scanner lags on large files.
+
+### Fixed
+- Fixed unreadable inline code contrast (white-on-light-grey) in dark and light modes by using dynamic container background colors and GitHub-style red/pink text colors.
+- Prevented search state leaks across opened documents by resetting providers on viewer screen disposal.
+- Fixed Android "Open with" cache prefixing, added cold-start cache cleanup on startup, and improved kotlin exception propagation.
+
 ## [1.1.0] - 2026-03-10
 
 ### Added

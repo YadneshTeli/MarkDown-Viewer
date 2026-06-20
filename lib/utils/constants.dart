@@ -8,10 +8,8 @@ class AppConstants {
   static const String appVersion = '1.0.0';
 
   // Colors
-  static const Color primaryColor = Color(0xFF2196F3);
-  static const Color secondaryColor = Color(0xFF009688);
-  static const Color darkSurface = Color(0xFF1E1E1E);
-  static const Color darkCard = Color(0xFF2D2D2D);
+  static const Color primaryColor = Color(0xFF4F46E5);
+  static const Color secondaryColor = Color(0xFF0EA5E9);
 
   // File constraints
   static const List<String> allowedExtensions = ['md', 'markdown'];

@@ -20,8 +20,12 @@ class HistoryService {
       await entry.delete();
     }
 
-    // Add the new entry (without content to save space)
-    final historyEntry = file.copyForHistory();
+    // Add the new entry, keeping content only for temporary/cache files
+    final pathLower = file.path.toLowerCase();
+    final keepContent = pathLower.contains('cache') ||
+        pathLower.contains('tmp') ||
+        pathLower.contains('temp');
+    final historyEntry = file.copyForHistory(keepContent: keepContent);
     await _box.add(historyEntry);
 
     // Trim to max size

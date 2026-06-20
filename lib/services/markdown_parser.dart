@@ -21,6 +21,29 @@ class MarkdownParser {
     while (i < lines.length) {
       final line = lines[i];
 
+      // Setext heading lookahead (heading underlined with === or ---)
+      if (line.trim().isNotEmpty && i + 1 < lines.length) {
+        final nextLine = lines[i + 1].trim();
+        if (RegExp(r'^=+$').hasMatch(nextLine)) {
+          blocks.add(MdBlock(MdBlockType.heading, line.trim(), level: 1));
+          i += 2;
+          continue;
+        } else if (RegExp(r'^-+$').hasMatch(nextLine)) {
+          // Make sure current line is not matching other block types (like list items, headings or code)
+          if (!line.trimLeft().startsWith('#') &&
+              !line.trimLeft().startsWith('>') &&
+              !line.trimLeft().startsWith('```') &&
+              !line.trimLeft().startsWith('~~~') &&
+              !RegExp(r'^\s*[-*+]\s+').hasMatch(line) &&
+              !RegExp(r'^\s*\d+[.)]\s+').hasMatch(line) &&
+              !RegExp(r'^(\s*[-*_]\s*){3,}$').hasMatch(line)) {
+            blocks.add(MdBlock(MdBlockType.heading, line.trim(), level: 2));
+            i += 2;
+            continue;
+          }
+        }
+      }
+
       // Fenced code block (``` or ~~~)
       if (line.trimLeft().startsWith('```') || line.trimLeft().startsWith('~~~')) {
         final fence = line.trimLeft().substring(0, 3);
@@ -78,15 +101,17 @@ class MarkdownParser {
 
       // Ordered list item (1. or 1) ...)
       if (RegExp(r'^\s*\d+[.)]\s+').hasMatch(line)) {
-        final listItems = <String>[];
-        while (i < lines.length && RegExp(r'^\s*\d+[.)]\s+').hasMatch(lines[i])) {
-          listItems.add(lines[i].replaceFirst(RegExp(r'^\s*\d+[.)]\s+'), ''));
+        final listItems = <MapEntry<int, String>>[];
+        while (i < lines.length) {
+          final match = RegExp(r'^\s*(\d+)[.)]\s+').firstMatch(lines[i]);
+          if (match == null) break;
+          final num = int.parse(match.group(1)!);
+          final text = lines[i].replaceFirst(RegExp(r'^\s*\d+[.)]\s+'), '');
+          listItems.add(MapEntry(num, text));
           i++;
         }
-        int num = 1;
-        for (final item in listItems) {
-          blocks.add(MdBlock(MdBlockType.orderedListItem, item, level: num));
-          num++;
+        for (final entry in listItems) {
+          blocks.add(MdBlock(MdBlockType.orderedListItem, entry.value, level: entry.key));
         }
         continue;
       }

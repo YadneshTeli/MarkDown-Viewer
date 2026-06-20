@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -5,6 +6,9 @@ import 'package:markdown_widget/markdown_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/search_provider.dart';
+import '../providers/font_size_provider.dart';
+import '../providers/file_provider.dart';
+import 'mermaid_widget.dart';
 
 /// A themed markdown viewer that adapts to light/dark mode.
 /// Supports remote images, SVG badges, HTML tags, custom styling,
@@ -23,6 +27,7 @@ class MarkdownViewerWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final searchState = ref.watch(searchProvider);
+    final fontSize = ref.watch(fontSizeProvider);
     final theme = Theme.of(context);
 
     // Build the markdown generator — with highlight builder when search is active
@@ -38,7 +43,7 @@ class MarkdownViewerWidget extends ConsumerWidget {
       generator = MarkdownGenerator();
     }
 
-    final config = isDark ? _darkConfig(context) : _lightConfig(context);
+    final config = isDark ? _darkConfig(context, ref, fontSize) : _lightConfig(context, ref, fontSize);
 
     final markdownChild = MarkdownWidget(
       data: content,
@@ -188,7 +193,7 @@ class MarkdownViewerWidget extends ConsumerWidget {
 
   // ─── Light theme config ─────────────────────────────────────────────
 
-  MarkdownConfig _lightConfig(BuildContext context) {
+  MarkdownConfig _lightConfig(BuildContext context, WidgetRef ref, double fontSize) {
     final theme = Theme.of(context);
     return MarkdownConfig(
       configs: [
@@ -210,48 +215,65 @@ class MarkdownViewerWidget extends ConsumerWidget {
           ),
         ),
         PConfig(
-          textStyle: theme.textTheme.bodyLarge!.copyWith(height: 1.6),
+          textStyle: theme.textTheme.bodyLarge!.copyWith(
+            fontSize: fontSize,
+            height: 1.6,
+          ),
+        ),
+        CodeConfig(
+          style: theme.textTheme.bodyMedium!.copyWith(
+            fontFamily: 'monospace',
+            fontSize: fontSize - 2,
+            color: const Color(0xFFCF222E),
+            backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
+          ),
         ),
         PreConfig(
+          wrapper: (child, code, language) {
+            if (language.trim().toLowerCase() == 'mermaid') {
+              return MermaidWidget(diagram: code);
+            }
+            return child;
+          },
           theme: {
             'root': TextStyle(
-              color: const Color(0xFF24292E),
-              backgroundColor: const Color(0xFFF6F8FA),
+              color: theme.colorScheme.onSurface,
+              backgroundColor: theme.colorScheme.surfaceContainerLow,
               fontSize: 14,
             ),
           },
           decoration: BoxDecoration(
-            color: const Color(0xFFF6F8FA),
+            color: theme.colorScheme.surfaceContainerLow,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6)),
           ),
         ),
         BlockquoteConfig(
           sideColor: theme.colorScheme.primary,
-          textColor: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+          textColor: theme.colorScheme.onSurfaceVariant,
         ),
         LinkConfig(
           style: TextStyle(
             color: theme.colorScheme.primary,
             decoration: TextDecoration.underline,
           ),
-          onTap: _handleLinkTap,
+          onTap: (url) => _handleLinkTap(context, ref, url),
         ),
         TableConfig(
           headerStyle: theme.textTheme.bodyMedium!
-              .copyWith(fontWeight: FontWeight.bold),
-          bodyStyle: theme.textTheme.bodyMedium!,
-          border: TableBorder.all(color: Colors.grey.shade300, width: 1),
+              .copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
+          bodyStyle: theme.textTheme.bodyMedium!.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          border: TableBorder.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6), width: 1),
         ),
         _imgConfig(theme),
-        HrConfig(color: Colors.grey.shade300, height: 1),
+        HrConfig(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6), height: 1),
       ],
     );
   }
 
   // ─── Dark theme config ──────────────────────────────────────────────
 
-  MarkdownConfig _darkConfig(BuildContext context) {
+  MarkdownConfig _darkConfig(BuildContext context, WidgetRef ref, double fontSize) {
     final theme = Theme.of(context);
     return MarkdownConfig(
       configs: [
@@ -273,41 +295,58 @@ class MarkdownViewerWidget extends ConsumerWidget {
           ),
         ),
         PConfig(
-          textStyle: theme.textTheme.bodyLarge!.copyWith(height: 1.6),
+          textStyle: theme.textTheme.bodyLarge!.copyWith(
+            fontSize: fontSize,
+            height: 1.6,
+          ),
+        ),
+        CodeConfig(
+          style: theme.textTheme.bodyMedium!.copyWith(
+            fontFamily: 'monospace',
+            fontSize: fontSize - 2,
+            color: const Color(0xFFE57B8F),
+            backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
+          ),
         ),
         PreConfig(
+          wrapper: (child, code, language) {
+            if (language.trim().toLowerCase() == 'mermaid') {
+              return MermaidWidget(diagram: code);
+            }
+            return child;
+          },
           theme: {
             'root': TextStyle(
-              color: const Color(0xFFE1E4E8),
-              backgroundColor: const Color(0xFF2D2D2D),
+              color: theme.colorScheme.onSurface,
+              backgroundColor: theme.colorScheme.surfaceContainerLow,
               fontSize: 14,
             ),
           },
           decoration: BoxDecoration(
-            color: const Color(0xFF2D2D2D),
+            color: theme.colorScheme.surfaceContainerLow,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey.shade700),
+            border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6)),
           ),
         ),
         BlockquoteConfig(
           sideColor: theme.colorScheme.primary,
-          textColor: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+          textColor: theme.colorScheme.onSurfaceVariant,
         ),
         LinkConfig(
           style: TextStyle(
             color: theme.colorScheme.primary,
             decoration: TextDecoration.underline,
           ),
-          onTap: _handleLinkTap,
+          onTap: (url) => _handleLinkTap(context, ref, url),
         ),
         TableConfig(
           headerStyle: theme.textTheme.bodyMedium!
-              .copyWith(fontWeight: FontWeight.bold),
-          bodyStyle: theme.textTheme.bodyMedium!,
-          border: TableBorder.all(color: Colors.grey.shade700, width: 1),
+              .copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
+          bodyStyle: theme.textTheme.bodyMedium!.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          border: TableBorder.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6), width: 1),
         ),
         _imgConfig(theme),
-        HrConfig(color: Colors.grey.shade700, height: 1),
+        HrConfig(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6), height: 1),
       ],
     );
   }
@@ -359,6 +398,9 @@ class MarkdownViewerWidget extends ConsumerWidget {
           height: isBadge ? 28 : null,
           fit: isBadge ? BoxFit.contain : BoxFit.fitWidth,
           placeholderBuilder: (context) => _buildLoadingIndicator(isBadge),
+          errorBuilder: (context, error, stackTrace) {
+            return _buildImageError(theme, attributes['alt'] ?? '');
+          },
         ),
       );
     }
@@ -416,10 +458,79 @@ class MarkdownViewerWidget extends ConsumerWidget {
     return const SizedBox.shrink();
   }
 
-  void _handleLinkTap(String url) async {
+  void _handleLinkTap(BuildContext context, WidgetRef ref, String url) async {
     final uri = Uri.tryParse(url);
-    if (uri != null && await canLaunchUrl(uri)) {
+    if (uri == null) return;
+
+    // Check if it's an anchor link within the current document
+    if (url.startsWith('#')) {
+      _scrollToAnchor(url.substring(1));
+      return;
+    }
+
+    // Check if it's a web URL
+    if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
+      return;
+    }
+
+    // Otherwise, check if it's a relative file path
+    final activeFile = ref.read(fileProvider).value;
+    if (activeFile != null) {
+      final directory = File(activeFile.path).parent.path;
+      var cleanUrl = url;
+      if (cleanUrl.startsWith('./')) {
+        cleanUrl = cleanUrl.substring(2);
+      }
+      final targetPath = '$directory/$cleanUrl';
+      final targetFile = File(targetPath);
+      if (await targetFile.exists()) {
+        final newFile = await ref.read(fileProvider.notifier).openFromPath(targetFile.path);
+        if (newFile != null && context.mounted) {
+          Navigator.pushNamed(
+            context,
+            '/viewer',
+            arguments: newFile,
+          );
+        }
+        return;
+      }
+    }
+  }
+
+  void _scrollToAnchor(String anchor) {
+    if (scrollController == null || !scrollController!.hasClients) return;
+
+    final cleanAnchor = anchor.toLowerCase().replaceAll(RegExp(r'[^a-z0-9\s-]'), '').replaceAll(RegExp(r'\s+'), '-');
+    final lines = content.split('\n');
+    int currentOffset = 0;
+    int? matchOffset;
+
+    for (final line in lines) {
+      final headingMatch = RegExp(r'^(#{1,6})\s+(.+)$').firstMatch(line);
+      if (headingMatch != null) {
+        final headingText = headingMatch.group(2)!.trim();
+        final slug = headingText.toLowerCase()
+            .replaceAll(RegExp(r'[^a-z0-9\s-]'), '')
+            .replaceAll(RegExp(r'\s+'), '-');
+        if (slug == cleanAnchor) {
+          matchOffset = currentOffset;
+          break;
+        }
+      }
+      currentOffset += line.length + 1;
+    }
+
+    if (matchOffset != null && content.isNotEmpty) {
+      final ratio = matchOffset / content.length;
+      final maxScroll = scrollController!.position.maxScrollExtent;
+      final targetOffset = (ratio * maxScroll).clamp(0.0, maxScroll);
+
+      scrollController!.animateTo(
+        targetOffset,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
     }
   }
 }

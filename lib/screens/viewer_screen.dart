@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -19,6 +20,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   String? _processedContent;
   String? _error;
   bool _isProcessing = true;
+  Timer? _debounceTimer;
 
   @override
   void didChangeDependencies() {
@@ -30,6 +32,8 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
+    ref.read(searchProvider.notifier).deactivate();
     _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -134,9 +138,12 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
       ),
       style: theme.textTheme.bodyLarge,
       onChanged: (query) {
-        if (_processedContent != null) {
-          ref.read(searchProvider.notifier).search(_processedContent!, query);
-        }
+        if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
+        _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+          if (_processedContent != null && mounted) {
+            ref.read(searchProvider.notifier).search(_processedContent!, query);
+          }
+        });
       },
     );
   }

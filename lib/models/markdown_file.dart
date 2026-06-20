@@ -40,13 +40,14 @@ class MarkdownFile extends HiveObject {
     );
   }
 
-  /// Create a copy for history storage (preserves content for reopening).
-  MarkdownFile copyForHistory() {
+  /// Create a copy for history storage.
+  /// Content is only kept for temporary/cache files to save database space.
+  MarkdownFile copyForHistory({required bool keepContent}) {
     return MarkdownFile(
       name: name,
       path: path,
       size: size,
-      content: content, // Keep content — file_picker cache paths are temporary
+      content: keepContent ? content : '',
       lastOpened: DateTime.now(),
     );
   }

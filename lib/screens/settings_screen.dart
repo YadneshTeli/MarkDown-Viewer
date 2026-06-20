@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../providers/theme_provider.dart';
+import '../providers/font_size_provider.dart';
 import '../utils/constants.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -11,12 +12,8 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeProvider);
     final themeNotifier = ref.read(themeProvider.notifier);
+    final fontSize = ref.watch(fontSizeProvider);
     final theme = Theme.of(context);
-
-    // Read font size from Hive
-    final settingsBox = Hive.box(AppConstants.settingsBox);
-    final fontSize =
-        settingsBox.get(AppConstants.fontSizeKey, defaultValue: 16.0) as double;
 
     return Scaffold(
       appBar: AppBar(
@@ -33,10 +30,14 @@ class SettingsScreen extends ConsumerWidget {
             title: const Text('Theme'),
             subtitle: Text(themeNotifier.label),
             trailing: SegmentedButton<ThemeMode>(
-              style: ButtonStyle(
+              style: const ButtonStyle(
                 visualDensity: VisualDensity.compact,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
+              selected: {themeMode},
+              onSelectionChanged: (set) {
+                themeNotifier.setThemeMode(set.first);
+              },
               segments: const [
                 ButtonSegment(
                   value: ThemeMode.system,
@@ -51,10 +52,6 @@ class SettingsScreen extends ConsumerWidget {
                   icon: Icon(Icons.dark_mode, size: 18),
                 ),
               ],
-              selected: {themeMode},
-              onSelectionChanged: (set) {
-                themeNotifier.setThemeMode(set.first);
-              },
             ),
           ),
 
@@ -75,9 +72,7 @@ class SettingsScreen extends ConsumerWidget {
               divisions: 12,
               label: '${fontSize.toInt()}px',
               onChanged: (value) {
-                settingsBox.put(AppConstants.fontSizeKey, value);
-                // Force rebuild
-                (context as Element).markNeedsBuild();
+                ref.read(fontSizeProvider.notifier).setFontSize(value);
               },
             ),
           ),

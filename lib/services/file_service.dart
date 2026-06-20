@@ -38,7 +38,13 @@ class FileService {
       );
     }
 
-    final content = await file.readAsString();
-    return MarkdownFile.fromFile(file, content);
+    try {
+      final content = await file.readAsString();
+      return MarkdownFile.fromFile(file, content);
+    } on FormatException {
+      throw const FormatException(
+        'The file is not a valid UTF-8 text file. Please ensure it contains readable text.',
+      );
+    }
   }
 }
