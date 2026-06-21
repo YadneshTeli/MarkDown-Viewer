@@ -2,16 +2,47 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
   <style>
-    html, body { margin:0; padding:0; background:transparent; overflow:hidden; }
-    #graph { display:flex; justify-content:center; }
-    svg { max-width:100%; height:auto; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #graph {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    svg {
+      max-width: 100%;
+      height: auto;
+      transform-origin: center center;
+    }
   </style>
   <script src="mermaid.min.js"></script>
 </head>
 <body>
   <div id="graph"></div>
   <script>
+    let scale = 1;
+    let translateX = 0;
+    let translateY = 0;
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let startDist = 0;
+    let startScale = 1;
+    let isZoomEnabled = false;
+
     function renderGraph(code, isDark) {
       try {
         mermaid.initialize({
@@ -20,23 +51,165 @@
           securityLevel: 'loose'
         });
         const id = 'g' + Date.now();
-        mermaid.render(id, code).then(({svg}) => {
-          document.getElementById('graph').innerHTML = svg;
-          // Wait for DOM to lay out
+        let rendered = false;
+
+        const callback = function(svgCode) {
+          if (rendered) return;
+          rendered = true;
+          document.getElementById('graph').innerHTML = svgCode;
+          
+          // Setup pan zoom handlers after SVG is inserted
           setTimeout(() => {
+            initPanZoom();
             const h = document.getElementById('graph').scrollHeight;
             MermaidHeight.postMessage(String(h));
           }, 50);
-        }).catch(err => {
-          document.getElementById('graph').innerHTML =
-            '<pre style="color:red;white-space:pre-wrap;font-size:12px;">' + err + '</pre>';
-          MermaidHeight.postMessage('80');
-        });
+        };
+
+        const result = mermaid.render(id, code, callback);
+        if (result && typeof result === 'string') {
+          callback(result);
+        }
       } catch (err) {
         document.getElementById('graph').innerHTML =
           '<pre style="color:red;white-space:pre-wrap;font-size:12px;">' + err + '</pre>';
         MermaidHeight.postMessage('80');
       }
+    }
+
+    function initPanZoom() {
+      const graph = document.getElementById('graph');
+      const svg = graph.querySelector('svg');
+      if (!svg) return;
+
+      // Mouse drag panning
+      graph.addEventListener('mousedown', (e) => {
+        if (!isZoomEnabled) return;
+        isDragging = true;
+        startX = e.clientX - translateX;
+        startY = e.clientY - translateY;
+        svg.style.transition = 'none';
+        graph.style.cursor = 'grabbing';
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        translateX = e.clientX - startX;
+        translateY = e.clientY - startY;
+        updateTransform();
+      });
+
+      window.addEventListener('mouseup', () => {
+        isDragging = false;
+        graph.style.cursor = isZoomEnabled ? 'grab' : 'default';
+      });
+
+      // Touch drag panning & pinch zoom
+      graph.addEventListener('touchstart', (e) => {
+        if (!isZoomEnabled) return;
+        if (e.touches.length === 1) {
+          isDragging = true;
+          startX = e.touches[0].clientX - translateX;
+          startY = e.touches[0].clientY - translateY;
+          svg.style.transition = 'none';
+        } else if (e.touches.length === 2) {
+          isDragging = false;
+          const t1 = e.touches[0];
+          const t2 = e.touches[1];
+          startDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+          startScale = scale;
+          svg.style.transition = 'none';
+        }
+      });
+
+      graph.addEventListener('touchmove', (e) => {
+        if (!isZoomEnabled) return;
+        if (isDragging && e.touches.length === 1) {
+          translateX = e.touches[0].clientX - startX;
+          translateY = e.touches[0].clientY - startY;
+          updateTransform();
+        } else if (e.touches.length === 2) {
+          const t1 = e.touches[0];
+          const t2 = e.touches[1];
+          const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+          if (startDist > 0) {
+            scale = Math.max(0.1, Math.min(10, startScale * (dist / startDist)));
+            updateTransform();
+          }
+        }
+      });
+
+      graph.addEventListener('touchend', (e) => {
+        isDragging = false;
+      });
+      
+      // Wheel zoom support
+      graph.addEventListener('wheel', (e) => {
+        if (!isZoomEnabled) return;
+        e.preventDefault();
+        const factor = 1.1;
+        svg.style.transition = 'none';
+        if (e.deltaY < 0) {
+          scale = Math.min(10, scale * factor);
+        } else {
+          scale = Math.max(0.1, scale / factor);
+        }
+        updateTransform();
+      }, { passive: false });
+    }
+
+    function updateTransform() {
+      const svg = document.querySelector('#graph svg');
+      if (svg) {
+        svg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+      }
+    }
+
+    function setZoomEnabled(enabled) {
+      isZoomEnabled = enabled;
+      const graph = document.getElementById('graph');
+      const svg = graph.querySelector('svg');
+      
+      if (enabled) {
+        graph.style.cursor = 'grab';
+        if (svg) {
+          svg.style.maxWidth = 'none';
+          svg.style.height = 'auto';
+        }
+      } else {
+        graph.style.cursor = 'default';
+        if (svg) {
+          svg.style.maxWidth = '100%';
+          svg.style.height = 'auto';
+          svg.style.transform = '';
+        }
+        scale = 1;
+        translateX = 0;
+        translateY = 0;
+      }
+    }
+
+    function zoomIn() {
+      const svg = document.querySelector('#graph svg');
+      if (svg) svg.style.transition = 'transform 0.15s ease-out';
+      scale = Math.min(10, scale * 1.25);
+      updateTransform();
+    }
+
+    function zoomOut() {
+      const svg = document.querySelector('#graph svg');
+      if (svg) svg.style.transition = 'transform 0.15s ease-out';
+      scale = Math.max(0.1, scale / 1.25);
+      updateTransform();
+    }
+
+    function resetZoom() {
+      const svg = document.querySelector('#graph svg');
+      if (svg) svg.style.transition = 'transform 0.15s ease-out';
+      scale = 1;
+      translateX = 0;
+      translateY = 0;
+      updateTransform();
     }
   </script>
 </body>

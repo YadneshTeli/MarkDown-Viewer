@@ -45,26 +45,14 @@ class MarkdownViewerWidget extends ConsumerWidget {
 
     final config = isDark ? _darkConfig(context, ref, fontSize) : _lightConfig(context, ref, fontSize);
 
-    final markdownChild = MarkdownWidget(
-      data: content,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      config: config,
-      markdownGenerator: generator,
-    );
+    final widgets = generator.buildWidgets(content, config: config);
 
-    if (scrollController != null) {
-      return SingleChildScrollView(
-        controller: scrollController,
-        child: markdownChild,
-      );
-    }
-
-    return MarkdownWidget(
-      data: content,
-      shrinkWrap: false,
-      config: config,
-      markdownGenerator: generator,
+    return ListView.builder(
+      controller: scrollController,
+      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+      padding: EdgeInsets.zero,
+      itemCount: widgets.length,
+      itemBuilder: (context, index) => widgets[index],
     );
   }
 

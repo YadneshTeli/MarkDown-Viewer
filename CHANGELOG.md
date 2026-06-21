@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-06-21
+
+### Added
+- Interactive pinch-to-zoom and drag-to-pan gestures for Mermaid diagrams, accessible via a floating expand button.
+- A dedicated full-screen Diagram Viewer page equipped with native Zoom In (+), Zoom Out (-), and Reset / Center action controls.
+
+### Changed
+- Refactored markdown document rendering from a single-pass `SingleChildScrollView` to a lazy-loading `ListView.builder` to enable widget recycling, resolve choreo frame skips, and ensure butter-smooth scrolling with `BouncingScrollPhysics`.
+
+### Fixed
+- Fixed Mermaid diagram rendering error (`ReferenceError: mermaid is not defined`) in mobile WebView by dynamically inlining `mermaid.min.js` directly into the HTML template string at runtime.
+
 ## [1.2.0] - 2026-06-21
 
 ### Added
