@@ -248,6 +248,10 @@ class MarkdownViewerWidget extends ConsumerWidget {
           onTap: (url) => _handleLinkTap(context, ref, url),
         ),
         TableConfig(
+          wrapper: (child) => SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: child,
+          ),
           headerStyle: theme.textTheme.bodyMedium!
               .copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
           bodyStyle: theme.textTheme.bodyMedium!.copyWith(color: theme.colorScheme.onSurfaceVariant),
@@ -328,6 +332,10 @@ class MarkdownViewerWidget extends ConsumerWidget {
           onTap: (url) => _handleLinkTap(context, ref, url),
         ),
         TableConfig(
+          wrapper: (child) => SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: child,
+          ),
           headerStyle: theme.textTheme.bodyMedium!
               .copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
           bodyStyle: theme.textTheme.bodyMedium!.copyWith(color: theme.colorScheme.onSurfaceVariant),
