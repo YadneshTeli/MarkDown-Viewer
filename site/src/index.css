@@ -1,0 +1,169 @@
+@import "tailwindcss";
+
+@theme {
+  /* Tailwind CSS v4 Theme Config mapping Obsidian Minimal + Indigo hybrid system */
+  --color-brand-primary: #6366F1;       /* Indigo branding */
+  --color-brand-secondary: #1E293B;     /* Slate border / secondary */
+  --color-brand-cta: #06B6D4;           /* Cyan Accent for interactive components */
+  --color-brand-cta-hover: #0891B2;     /* Cyan Accent hover state */
+  --color-brand-bg: #0B0F19;            /* Obsidian Minimal Dark Background */
+  --color-brand-card-bg: #111827;       /* Surface Dark */
+  --color-brand-card-border: #1E293B;   /* Border color */
+  --color-brand-text: #F8FAFC;          /* Primary Header Text */
+  --color-brand-text-muted: #94A3B8;    /* Muted/Secondary Text */
+  --color-brand-border: #1E293B;
+  --color-brand-code-bg: #0F172A;       /* Code Editor background */
+  --color-brand-highlight: rgba(6, 182, 212, 0.35); /* Cyan highlight for active matches */
+  
+  --font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-heading: 'Space Grotesk', system-ui, sans-serif;
+  
+  --animate-float-slow: float-slow 6s ease-in-out infinite alternate;
+  --animate-float-slow-reverse: float-slow 8s ease-in-out infinite alternate-reverse;
+  --animate-float-main: float-main 5s ease-in-out infinite alternate;
+  --animate-fade-in: fade-in 0.25s ease-out forwards;
+}
+
+/* Light mode overrides */
+.light-theme {
+  --color-brand-bg: #F8FAFC;
+  --color-brand-text: #0F172A;
+  --color-brand-text-muted: #475569;
+  --color-brand-card-bg: #FFFFFF;
+  --color-brand-card-border: #E2E8F0;
+  --color-brand-border: #E2E8F0;
+  --color-brand-code-bg: #F1F5F9;
+  --color-brand-highlight: rgba(6, 182, 212, 0.25);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    font-family: var(--font-sans);
+    background-color: var(--color-brand-bg);
+    color: var(--color-brand-text);
+    transition: background-color 300ms ease, color 300ms ease;
+    overflow-x: hidden;
+  }
+  
+  body {
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    color: var(--color-brand-text);
+  }
+
+  p {
+    color: #CBD5E1; /* High readability body text in dark mode */
+  }
+
+  .light-theme p {
+    color: var(--color-brand-text-muted);
+  }
+
+  a {
+    color: #38BDF8; /* Link sky color */
+    text-decoration: none;
+    transition: color 150ms ease;
+  }
+
+  a:hover {
+    color: var(--color-brand-cta-hover);
+  }
+}
+
+/* Scrollbar customizations */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-brand-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-brand-secondary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-brand-text-muted);
+}
+
+/* Animations for floating app preview graphics */
+@keyframes float-main {
+  0% { transform: translateY(0px) rotateX(1deg); }
+  100% { transform: translateY(-10px) rotateX(-1deg); }
+}
+
+@keyframes float-slow {
+  0% { transform: translateY(0px) scale(1); }
+  100% { transform: translateY(-15px) scale(1.05); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Custom classes for the live playground elements */
+.search-highlight {
+  background-color: var(--color-brand-highlight);
+  color: var(--color-brand-text);
+  border-radius: 2px;
+  padding: 0 2px;
+  box-shadow: 0 0 4px var(--color-brand-cta);
+}
+
+/* Force dark slate print aesthetics inside the PDF paper preview block, regardless of light/dark theme state */
+.pdf-paper,
+.pdf-paper * {
+  color: #0F172A !important;
+  border-color: #CBD5E1 !important;
+  font-family: serif !important;
+}
+
+.pdf-paper p,
+.pdf-paper li,
+.pdf-paper span {
+  color: #334155 !important;
+  font-family: serif !important;
+}
+
+.pdf-paper h1,
+.pdf-paper h2,
+.pdf-paper h3,
+.pdf-paper strong {
+  color: #0F172A !important;
+  font-family: var(--font-sans) !important;
+}
+
+.pdf-paper pre {
+  background-color: #F8FAFC !important;
+  border-color: #CBD5E1 !important;
+}
+
+.pdf-paper code {
+  background-color: #F1F5F9 !important;
+  color: #E11D48 !important; /* Rose code color for contrast */
+  border: 1px solid #CBD5E1 !important;
+  font-family: var(--font-mono) !important;
+}
+
+.pdf-paper pre code {
+  background-color: transparent !important;
+  color: #334155 !important;
+  border: none !important;
+}
+
+.pdf-paper blockquote {
+  border-left-color: var(--color-brand-cta) !important;
+  color: #475569 !important;
+}
