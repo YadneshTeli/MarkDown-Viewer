@@ -5,6 +5,7 @@ import '../services/file_service.dart';
 import '../services/history_service.dart';
 import '../services/markdown_service.dart';
 import '../services/search_service.dart';
+import '../services/update_service.dart';
 
 /// Single-instance provider for [ExportService].
 final exportServiceProvider = Provider<ExportService>((ref) {
@@ -29,4 +30,9 @@ final markdownServiceProvider = Provider<MarkdownService>((ref) {
 /// Single-instance provider for [SearchService].
 final searchServiceProvider = Provider<SearchService>((ref) {
   return SearchService();
+});
+
+/// Single-instance provider for [UpdateService].
+final updateServiceProvider = Provider<UpdateService>((ref) {
+  return UpdateService();
 });

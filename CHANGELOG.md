@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-06-28
+
+### Added
+- Hybrid in-app update checker to verify and install new app versions directly from GitHub Releases.
+- Real-time download progress bar in settings screen for direct APK updates.
+- Native Android `FileProvider` configurations for secure direct APK package installation.
+- Dynamic app version checking dynamically loading metadata from the platform.
+
 ## [1.2.2] - 2026-06-28
 
 ### Fixed
