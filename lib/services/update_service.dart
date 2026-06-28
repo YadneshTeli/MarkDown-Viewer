@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pub_semver/pub_semver.dart';
-import 'package:open_file_plus/open_file_plus.dart';
+import 'package:open_filex/open_filex.dart';
 
 class ReleaseInfo {
   final String tagName;
@@ -113,6 +113,6 @@ class UpdateService {
     if (kIsWeb || !Platform.isAndroid) {
       throw UnsupportedError('APK installation is only supported on Android.');
     }
-    return OpenFile.open(file.path, type: 'application/vnd.android.package-archive');
+    return OpenFilex.open(file.path, type: 'application/vnd.android.package-archive');
   }
 }
